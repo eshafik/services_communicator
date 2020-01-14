@@ -35,19 +35,88 @@ Add it to your `INSTALLED_APPS`:
         ...
     )
 
+Make migrate to database::
 
-Features
---------
+    python manage.py migrate
 
-* TODO
 
-Running Tests
--------------
+Add CREDENTIALS on settings.py file::
 
-Does the code actually work?
+    CREDENTIALS = { <service id>: {"username": <username>, "password": <password>},
+                    <service id>: {"username": <username>, "password": <password>},
+                    ..........................................................
+                    }
+    or,
+    CREDENTIALS = { "<service slug>": {"username": <username>, "password": <password>},
+                    "<service slug>": {"username": <username>, "password": <password>},
+                    ..........................................................
+                    }
+    or,
+    CREDENTIALS = { "<service guid>": {"username": <username>, "password": <password>},
+                    "<service guid>": {"username": <username>, "password": <password>},
+                    ..........................................................
+                    }
 
-::
 
-    source <YOURVIRTUALENV>/bin/activate
-    (myenv) $ pip install tox
-    (myenv) $ tox
+
+Now make your own Communicator:
+
+.. code-block:: python
+
+
+    from services_communicator.communicator import Communicator
+
+    class CustomCommunicator(Communicator):
+        """ Create your custom method here like this by inheriting Communicator"""
+
+        def get_roles(self, *args, **kwargs):
+            """
+                - To get other service roles
+            :return:
+            """
+            path = self.service.get_full_url + "/users/get_role/" # service url extension to do this task
+            response = self._get_action(path=path, headers=self._token())
+            return response.json()
+
+        def post_roles(self, *args, **kwargs):
+            """
+                - To create other service roles
+            :return:
+            """
+            data = data
+            path = self.service.get_full_url + "/users/create_role/" # service url extension to do this task
+            response = self._post_action(path=path, data=data, headers=self._token())
+            return response.json()
+
+        def patch_roles(self, *args, **kwargs):
+            """
+                - To create other service roles
+            :return:
+            """
+            data = data
+            path = self.service.get_full_url + "/users/update_role/" # service url extension to do this task
+            response = self._patch_action(path=path, data=data, headers=self._token())
+            return response.json()
+
+
+To perform action, initialize your CustomCommunicator and call your required methods:
+
+.. code-block:: python
+
+    service_communicator = CustomCommunicator(**{"service_id": <id>})
+    or,
+    service_communicator = CustomCommunicator(**{"service_slug": "<service slug>"})
+    or,
+    service_communicator = CustomCommunicator(**{"service_guid": "<service guid>"})
+
+    Now you can call your methods to perform specific task:
+
+    response = service_communicator.get_roles()
+
+
+
+Precaution
+----------
+
+* This module is designed only for the personal development purpose.
+

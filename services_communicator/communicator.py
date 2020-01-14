@@ -1,6 +1,7 @@
 import requests
 
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 
 from services_communicator import exceptions
 from services_communicator.models import ServiceList
@@ -74,12 +75,8 @@ class ServiceObject:
             setattr(self, name, value)
 
     def get_service(self):
-        for attr_name in list(self.__dict__.keys()):
-            try:
-                obj = ServiceList.objects.get(attr_name=self.__getattribute__(attr_name))
-                return obj
-            except:
-                pass
+        obj = get_object_or_404(ServiceList, **self.__dict__)
+        return obj
 
 
 class Communicator(ServiceObject, ServiceAction):
@@ -106,7 +103,6 @@ class Communicator(ServiceObject, ServiceAction):
 
     def _get_cred_data(self):
         cred = settings.CREDENTIALS
-
         data, = [cred.get(self.service.service_id) if cred.get(self.service.service_id) else cred.get(
             self.service.service_slug)]
         return data
