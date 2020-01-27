@@ -1,5 +1,5 @@
 import requests
-
+import logging
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 
@@ -11,6 +11,8 @@ _session = requests.Session()
 __all__ = [
     "Communicator",
 ]
+
+logger = logging.getLogger("service_communicator")
 
 
 class ServiceAction:
@@ -75,8 +77,12 @@ class ServiceObject:
             setattr(self, name, value)
 
     def get_service(self):
-        obj = get_object_or_404(ServiceList, **self.__dict__)
-        return obj
+        try:
+            obj = ServiceList.objects.get(**self.__dict__)
+            return obj
+        except:
+            logger.warning("No database or service found in your database")
+            return None
 
 
 class Communicator(ServiceObject, ServiceAction):
@@ -84,9 +90,12 @@ class Communicator(ServiceObject, ServiceAction):
     def __init__(self, *args, **kwargs):
         super(Communicator, self).__init__(*args, **kwargs)
         self.service = self.get_service()
-        self.base_url = self.service.service_url
-        self.version = self.service.api_version
-        self.token_url = self.service.service_token_url
+        if self.service:
+            self.base_url = self.service.service_url
+            self.version = self.service.api_version
+            self.token_url = self.service.service_token_url
+        else:
+            pass
 
     def _token(self):
         data = self._get_cred_data()
