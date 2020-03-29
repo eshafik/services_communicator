@@ -14,67 +14,10 @@ __all__ = [
 logger = logging.getLogger("service_communicator")
 
 
-class ServiceObject:
-    def __init__(self, *args, **kwargs):
-        allowed_attributes = ["service_id", "service_slug", "service_guid"]
-        for name, value in kwargs.items():
-            assert name in allowed_attributes
-            setattr(self, name, value)
+class ServiceAction:
 
-    def get_service(self):
-        try:
-            obj = ServiceList.objects.get(**self.__dict__)
-            return obj
-        except:
-            logger.warning("No database or service found in your database")
-            return None
-
-
-class Communicator(ServiceObject):
-
-    def __init__(self, *args, **kwargs):
-        super(Communicator, self).__init__(*args, **kwargs)
-        self.service = self.get_service()
-        if self.service:
-            self.base_url = self.service.service_url
-            self.version = self.service.api_version
-            self.token_url = self.service.service_token_url
-
-    def _update_constructor(self):
-        """
-            Updating Communicator object constructor
-        """
-        try:
-            self.service = self.get_service()
-            self.base_url = self.service.service_url
-            self.version = self.service.api_version
-            self.token_url = self.service.service_token_url
-        except Exception as error:
-            logger.warning(
-                "No Valid Service URL Found for this request on service Communicator. Error: {}".format(error))
-            raise exceptions.ValidationError()
-
-    def _get_cred_data(self):
-        cred = settings.CREDENTIALS
-        data, = [cred.get(self.service.service_id) if cred.get(self.service.service_id) else cred.get(
-            self.service.service_slug)]
-        return data
-
-    def _token(self):
-        try:
-            data = self._get_cred_data()
-            self._update_constructor()
-            path = self.base_url + self.version + self.token_url
-            response = self._post_action(path=path, data=data)
-            if response.status_code != 200:
-                raise exceptions.ServiceUnavailable()
-            token = response.json()
-        except requests.HTTPError as err:
-            raise exceptions.ServiceUnavailable()
-
-        return {"Authorization": f"JWT {token['token']}"}
-
-    def _post_action(self, path: str, data: dict, headers=None, timeout=25):
+    @staticmethod
+    def _post_action(path: str, data: dict, headers=None, timeout=25):
         """
         :param path:
         :param data:
@@ -90,7 +33,8 @@ class Communicator(ServiceObject):
 
         return response
 
-    def _patch_action(self, path: str, data: dict, headers=None, timeout=25):
+    @staticmethod
+    def _patch_action(path: str, data: dict, headers=None, timeout=25):
         """
         :param path:
         :param data:
@@ -106,7 +50,8 @@ class Communicator(ServiceObject):
 
         return response
 
-    def _get_action(self, path: str, params=None, headers=None, timeout=25):
+    @staticmethod
+    def _get_action(path: str, headers=None, timeout=25):
         """
         :param path:
         :param params:
@@ -122,9 +67,54 @@ class Communicator(ServiceObject):
 
         return response
 
+
+class Communicator(ServiceAction):
+
+    def __init__(self, *args, **kwargs):
+        allowed_attributes = ["service_id", "service_slug", "service_guid"]
+        for name, value in kwargs.items():
+            assert name in allowed_attributes
+            setattr(self, name, value)
+
+    def _get_cred_data(self):
+        """
+            Get credential from settings file
+        """
+        cred = settings.CREDENTIALS
+        data, = [cred.get(self.service_id) if cred.get(self.service_id) else cred.get(
+            self.service_slug)]
+        return data
+
+    def _token(self):
+        """
+            Get token from the service
+        """
+        try:
+            data = self._get_cred_data()
+            service = self.get_service()
+            path = service.service_url + service.api_version + service.service_token_url
+            response = self._post_action(path=path, data=data)
+            if response.status_code != 200:
+                raise exceptions.ServiceUnavailable()
+            token = response.json()
+        except requests.HTTPError as err:
+            raise exceptions.ServiceUnavailable()
+
+        return {"Authorization": f"JWT {token['token']}"}
+
     def get_full_url(self):
         """
             Get full BASE URL of the Service
         """
-        self._update_constructor()
-        return self.service.get_full_url
+        return self.get_service().get_full_url
+
+    def get_service(self):
+        """
+            Get the service object
+        """
+        try:
+            service = ServiceList.objects.get(**self.__dict__)
+            return service
+        except Exception as error:
+            logger.warning("No service object found on service list. Check admin Dashboard. Error{}".format(error))
+            raise exceptions.ValidationError("No service object found on service list. Check admin dashboard")
