@@ -40,25 +40,6 @@ class Communicator(ServiceObject):
             self.version = self.service.api_version
             self.token_url = self.service.service_token_url
 
-    def _token(self):
-        data = self._get_cred_data()
-        try:
-            path = self.base_url + self.version + self.token_url
-            response = self._post_action(path=path, data=data)
-            if response.status_code != 200:
-                raise exceptions.ServiceUnavailable()
-            token = response.json()
-        except requests.HTTPError as err:
-            raise exceptions.ServiceUnavailable()
-
-        return {"Authorization": f"JWT {token['token']}"}
-
-    def _get_cred_data(self):
-        cred = settings.CREDENTIALS
-        data, = [cred.get(self.service.service_id) if cred.get(self.service.service_id) else cred.get(
-            self.service.service_slug)]
-        return data
-
     def _update_constructor(self):
         """
             Updating Communicator object constructor
@@ -73,6 +54,26 @@ class Communicator(ServiceObject):
                 "No Valid Service URL Found for this request on service Communicator. Error: {}".format(error))
             raise exceptions.ValidationError()
 
+    def _get_cred_data(self):
+        cred = settings.CREDENTIALS
+        data, = [cred.get(self.service.service_id) if cred.get(self.service.service_id) else cred.get(
+            self.service.service_slug)]
+        return data
+
+    def _token(self):
+        try:
+            data = self._get_cred_data()
+            self._update_constructor()
+            path = self.base_url + self.version + self.token_url
+            response = self._post_action(path=path, data=data)
+            if response.status_code != 200:
+                raise exceptions.ServiceUnavailable()
+            token = response.json()
+        except requests.HTTPError as err:
+            raise exceptions.ServiceUnavailable()
+
+        return {"Authorization": f"JWT {token['token']}"}
+
     def _post_action(self, path: str, data: dict, headers=None, timeout=25):
         """
         :param path:
@@ -82,7 +83,6 @@ class Communicator(ServiceObject):
         :return:
         """
         try:
-            self._update_constructor()
             with _session as session:
                 response = session.post(path, json=data, headers=headers, timeout=timeout)
         except (requests.ConnectionError, requests.Timeout) as err:
@@ -99,7 +99,6 @@ class Communicator(ServiceObject):
         :return:
         """
         try:
-            self._update_constructor()
             with _session as session:
                 response = session.patch(path, json=data, headers=headers, timeout=timeout)
         except (requests.ConnectionError, requests.Timeout) as err:
@@ -116,7 +115,6 @@ class Communicator(ServiceObject):
         :return:
         """
         try:
-            self._update_constructor()
             with _session as session:
                 response = session.get(path, headers=headers, timeout=timeout)
         except (requests.ConnectionError, requests.Timeout) as err:
