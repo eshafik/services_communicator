@@ -121,3 +121,10 @@ class Communicator(ServiceObject):
             raise exceptions.ServiceUnavailable(err)
 
         return response
+
+    def get_full_url(self):
+        """
+            Get full BASE URL of the Service
+        """
+        self._update_constructor()
+        return self.service.get_full_url
