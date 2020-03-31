@@ -81,8 +81,7 @@ class Communicator(ServiceAction):
             Get credential from settings file
         """
         cred = settings.CREDENTIALS
-        data, = [cred.get(self.service_id) if cred.get(self.service_id) else cred.get(
-            self.service_slug)]
+        data = cred.get(int(next(iter(self.__dict__.values()))))
         return data
 
     def _token(self):
