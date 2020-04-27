@@ -1,15 +1,44 @@
 import requests
 import logging
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 from django.conf import settings
 
 from services_communicator import exceptions
 from services_communicator.models import ServiceList
 
-_session = requests.Session()
 
 __all__ = [
     "Communicator",
 ]
+
+
+def retry_session(retries=3, back_off_factor=0.3, status_force_list=(500, 502, 503, 504), session=None):
+    """
+    Read More: https://www.peterbe.com/plog/best-practice-with-retries-with-requests
+    :param retries:
+    :param back_off_factor:
+    :param status_force_list:
+    :param session:
+    :return:
+    """
+    session = session or requests.Session()
+    retry = Retry(
+        total=retries,
+        read=retries,
+        connect=retries,
+        backoff_factor=back_off_factor,
+        status_forcelist=status_force_list,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
+
+
+# _session = requests.Session()
+_session = retry_session()
 
 logger = logging.getLogger("service_communicator")
 
