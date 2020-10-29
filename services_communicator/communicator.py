@@ -104,6 +104,7 @@ class Communicator(ServiceAction):
         for name, value in kwargs.items():
             assert name in allowed_attributes
             setattr(self, name, value)
+        self.service_token = None
 
     def _get_cred_data(self):
         """
@@ -118,13 +119,18 @@ class Communicator(ServiceAction):
             Get token from the service
         """
         try:
-            data = self._get_cred_data()
-            service = self.get_service()
-            path = service.service_url + service.api_version + service.service_token_url
-            response = self._post_action(path=path, data=data)
-            if response.status_code != 200:
-                raise exceptions.ServiceUnavailable()
-            token = response.json()
+            if self.service_token:
+                token = self.service_token
+            else:
+                data = self._get_cred_data()
+                service = self.get_service()
+                path = service.service_url + service.api_version + service.service_token_url
+                response = self._post_action(path=path, data=data)
+                if response.status_code != 200:
+                    raise exceptions.ServiceUnavailable()
+                token = response.json()
+                self.service_token = token
+
         except requests.HTTPError as err:
             raise exceptions.ServiceUnavailable()
 
