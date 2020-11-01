@@ -119,17 +119,18 @@ class Communicator(ServiceAction):
             Get token from the service
         """
         try:
-            if cache.get("jwt_token"):
-                token = cache.get("jwt_token")
+
+            data = self._get_cred_data()
+            service = self.get_service()
+            if cache.get(f"jwt_{service.service_url}"):
+                token = cache.get(f"jwt_{service.service_url}")
             else:
-                data = self._get_cred_data()
-                service = self.get_service()
                 path = service.service_url + service.api_version + service.service_token_url
                 response = self._post_action(path=path, data=data)
                 if response.status_code != 200:
                     raise exceptions.ServiceUnavailable()
                 token = response.json()
-                cache.set("jwt_token", token, 3000)
+                cache.set(f"jwt_{service.service_url}", token, 300)
         except requests.HTTPError as err:
             raise exceptions.ServiceUnavailable()
 
