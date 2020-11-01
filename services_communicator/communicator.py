@@ -130,7 +130,7 @@ class Communicator(ServiceAction):
                 if response.status_code != 200:
                     raise exceptions.ServiceUnavailable()
                 token = response.json()
-                cache.set(f"jwt_{service.service_url}", token, 300)
+                cache.set(f"jwt_{service.service_url}", token, 500)
         except requests.HTTPError as err:
             raise exceptions.ServiceUnavailable()
 
