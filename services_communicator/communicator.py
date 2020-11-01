@@ -111,7 +111,8 @@ class Communicator(ServiceAction):
             Get credential from settings file
         """
         cred = settings.CREDENTIALS
-        data = cred.get(int(next(iter(self.__dict__.values()))))
+        # data = cred.get(int(next(iter(self.__dict__.values()))))
+        data = cred.get(int(self.service_id))
         return data
 
     def _token(self):
